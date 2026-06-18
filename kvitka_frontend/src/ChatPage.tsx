@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
+import { Logo2light } from "./Logo2";
+import { COLORS } from "./colors";
 import type { AuthUser } from "./LoginPage";
+import { sendMessage as apiSendMessage, type Message as APIMessage } from "./api/chat";
 
 // ── Types ──────────────────────────────────────────────────────────────────
+interface Source {
+  id: number;
+  title: string;
+  fileName: string;
+  similarityPercent: number;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  source?: string;
-  updatedAt?: string;
+  sources?: Source[];
 }
 
 // ── Static data / stubs ────────────────────────────────────────────────────
@@ -28,76 +38,55 @@ const RECENT_CHATS = [
   "Де знаходиться бібліотека?",
 ];
 
-function getAIResponse(text: string): ChatMessage {
-  const q = text.toLowerCase();
-  if (q.includes("127") || q.includes("кабінет") || q.includes("аудиторі")) {
-    return {
-      role: "assistant",
-      content:
-        "Кабінет 127 знаходиться на 2 поверсі першого навчального корпусу, у правому крилі будівлі. Від центрального входу піднімайтесь сходами на другий поверх та рухайтесь коридором праворуч приблизно 30 метрів. Кабінет буде розташований з лівого боку коридору.",
-      source: "План першого навчального корпусу",
-      updatedAt: "15.06.2026, 14:32",
-    };
-  }
-  if (q.includes("розклад") || q.includes("зміни")) {
-    return {
-      role: "assistant",
-      content:
-        "Сьогодні в розкладі є зміни: заняття з математики о 10:00 перенесено до аудиторії 215. Заняття з фізики скасовано. Усі інші пари відбуваються згідно з розкладом.",
-      source: "Зміни до розкладу занять",
-      updatedAt: "18.06.2026, 08:15",
-    };
-  }
-  if (q.includes("бібліотек")) {
-    return {
-      role: "assistant",
-      content:
-        "Бібліотека знаходиться на першому поверсі головного корпусу, кабінет 112. Години роботи: пн–пт 8:00–18:00, сб 9:00–15:00.",
-    };
-  }
-  if (q.includes("консультац") || q.includes("записат")) {
-    return {
-      role: "assistant",
-      content:
-        "Для запису на консультацію зверніться до деканату (каб. 103) або надішліть запит на електронну пошту деканату. Консультації: вівторок та четвер з 14:00 до 16:00.",
-    };
-  }
-  if (q.includes("дякую") || q.includes("спасибо")) {
-    return { role: "assistant", content: "Будь ласка! Якщо виникнуть ще питання — я тут 😊" };
-  }
-  return {
-    role: "assistant",
-    content:
-      "На жаль, у мене немає точної інформації з цього питання. Спробуйте переформулювати або зверніться до деканату для отримання відповіді.",
-  };
-}
-
 // ── Props ──────────────────────────────────────────────────────────────────
 interface ChatPageProps {
   user: AuthUser | null;
   onOpenProfile: () => void;
   onOpenLibrary: () => void;
+  onOpenAdmin: () => void;
   onOpenDocument: (docTitle: string) => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }: ChatPageProps) {
+export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOpenDocument }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim() || typing) return;
-    setMessages((m) => [...m, { role: "user", content: text }]);
+
+    // append user message locally
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput("");
     setTyping(true);
-    setTimeout(() => {
+    
+
+    try {
+      const payload: APIMessage[] = nextMessages.map((m) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content,
+      }));
+
+      const res = await apiSendMessage(payload);
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: res.answer || "Не вдалося отримати відповідь від сервера.",
+        sources: res.sources || [],
+      };
+
+      setMessages((m) => [...m, assistantMsg]);
+    } catch (err) {
+      setMessages((m) => [...m, { role: "assistant", content: "Помилка: не вдалося отримати відповідь від сервера." }]);
+    } finally {
       setTyping(false);
-      setMessages((m) => [...m, getAIResponse(text)]);
-    }, 900 + Math.random() * 700);
+    }
   };
 
   useEffect(() => {
@@ -111,7 +100,24 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
     .join("") || "?";
 
   return (
-    <div className="cr">
+    <div
+      className="cr"
+      style={
+        {
+          "--color-red": COLORS.red,
+          "--color-red-dark": COLORS.redDark,
+          "--color-navy": COLORS.navy,
+          "--color-navy-light": COLORS.navyLight,
+          "--color-bg": COLORS.bg,
+          "--color-white": COLORS.white,
+          "--color-gray100": COLORS.gray100,
+          "--color-gray200": COLORS.gray200,
+          "--color-gray400": COLORS.gray400,
+          "--color-gray600": COLORS.gray600,
+          "--color-gray800": COLORS.gray800,
+        } as CSSProperties
+      }
+    >
       {/* ── Drawer overlay (mobile) ── */}
       <div
         className={`cr-overlay${drawerOpen ? " is-open" : ""}`}
@@ -122,7 +128,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
       <aside className={`cr-sidebar${drawerOpen ? " is-open" : ""}`}>
         {/* Brand header */}
         <div className="sb-head">
-          <span className="sb-brand">KVITKA AI</span>
+          <Logo2light size={30} />
           <div className="sb-head-right">
             <button className="sb-icon-btn" title="Пошук">
               <IconSearch />
@@ -146,6 +152,15 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
             <IconLibrary />
             <span>бібліотека</span>
           </button>
+          {user?.is_admin && (
+            <button
+              className="sb-nav-item"
+              onClick={() => { setDrawerOpen(false); onOpenAdmin(); }}
+            >
+              <IconSettings />
+              <span>адмін</span>
+            </button>
+          )}
           <button
             className="sb-nav-item"
             onClick={() => { setMessages([]); setDrawerOpen(false); }}
@@ -216,21 +231,21 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
                   ) : (
                     <div className="bubble-ai">
                       <p className="bubble-ai-text">{msg.content}</p>
-                      {msg.source && (
+                      {msg.sources && msg.sources.length > 0 && (
                         <div className="bubble-ai-meta">
-                          <span className="meta-label">Джерело: </span>
-                          <button
-                            className="meta-link"
-                            onClick={() => onOpenDocument(msg.source!)}
-                          >
-                            {msg.source}
-                          </button>
-                          {msg.updatedAt && (
-                            <div className="meta-updated">
-                              <span className="meta-label">Остання оновлення документа: </span>
-                              {msg.updatedAt}
-                            </div>
-                          )}
+                          <span className="meta-label">Джерела:</span>
+                          <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                            {msg.sources.map((source) => (
+                              <button
+                                key={source.id}
+                                className="meta-link"
+                                onClick={() => onOpenDocument(source.title)}
+                                style={{ display: "block", textAlign: "left" }}
+                              >
+                                {source.title} ({source.similarityPercent}%)
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -287,10 +302,10 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
           display: flex;
           height: 100vh;
           height: 100dvh;
-          background: #fff;
+          background: var(--color-bg);
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           overflow: hidden;
-          color: #1a1a1a;
+          color: var(--color-gray800);
         }
 
         /* ── Overlay ── */
@@ -313,8 +328,8 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         .cr-sidebar {
           width: 280px;
           flex-shrink: 0;
-          background: #fff;
-          border-right: 1px solid #EBEBEB;
+          background: var(--color-white);
+          border-right: 1px solid var(--color-gray200);
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -326,13 +341,13 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
           align-items: center;
           justify-content: space-between;
           padding: 18px 18px 14px;
-          border-bottom: 1px solid #EBEBEB;
+          border-bottom: 1px solid var(--color-gray200);
           flex-shrink: 0;
         }
         .sb-brand {
           font-size: 17px;
           font-weight: 800;
-          color: #1a1a1a;
+          color: var(--color-gray800);
           letter-spacing: -0.02em;
         }
         .sb-head-right { display: flex; align-items: center; gap: 8px; }
@@ -342,45 +357,45 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
           color: #888; padding: 6px; display: flex; align-items: center;
           border-radius: 8px; transition: background 0.15s;
         }
-        .sb-icon-btn:hover { background: #F5F5F5; }
+        .sb-icon-btn:hover { background: var(--color-gray100); }
 
         .sb-avatar {
           width: 30px; height: 30px; border-radius: 50%;
-          background: linear-gradient(135deg, #8A0F29, #C0254A);
+          background: linear-gradient(135deg, var(--color-red-dark), var(--color-red-dark));
           display: flex; align-items: center; justify-content: center;
-          color: #fff; font-size: 11px; font-weight: 800;
+          color: var(--color-white); font-size: 11px; font-weight: 800;
           cursor: pointer; transition: transform 0.2s;
           flex-shrink: 0;
         }
         .sb-avatar:hover { transform: scale(1.08); }
 
-        .sb-nav { border-bottom: 1px solid #EBEBEB; }
+        .sb-nav { border-bottom: 1px solid var(--color-gray200); }
         .sb-nav-item {
           display: flex; align-items: center; gap: 11px;
           padding: 13px 18px; width: 100%;
-          background: none; border: none; border-bottom: 1px solid #F5F5F5;
-          font-size: 14px; font-weight: 500; color: #1a1a1a;
+          background: none; border: none; border-bottom: 1px solid var(--color-gray100);
+          font-size: 14px; font-weight: 500; color: var(--color-gray800);
           cursor: pointer; font-family: 'Inter', sans-serif;
           transition: background 0.15s;
         }
         .sb-nav-item:last-child { border-bottom: none; }
-        .sb-nav-item:hover { background: #F8F8F8; }
+        .sb-nav-item:hover { background: var(--color-gray100); }
 
         .sb-recent { flex: 1; overflow-y: auto; padding: 14px 10px; }
         .sb-section-label {
-          font-size: 10px; font-weight: 700; color: #AAA;
+          font-size: 10px; font-weight: 700; color: var(--color-gray400);
           text-transform: uppercase; letter-spacing: 0.09em;
           margin: 0 0 8px 8px;
         }
         .sb-recent-item {
           display: block; width: 100%; text-align: left;
           padding: 9px 12px; background: none; border: none;
-          border-radius: 10px; font-size: 13px; color: #444;
+          border-radius: 10px; font-size: 13px; color: var(--color-gray600);
           font-family: 'Inter', sans-serif; cursor: pointer;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           transition: background 0.15s; margin-bottom: 1px;
         }
-        .sb-recent-item:hover { background: #F5F5F5; }
+        .sb-recent-item:hover { background: var(--color-gray100); }
 
         /* ── Main ── */
         .cr-main {
@@ -392,16 +407,16 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
           display: flex; align-items: center;
           justify-content: space-between;
           padding: 13px 16px;
-          border-bottom: 1px solid #EBEBEB;
-          flex-shrink: 0; background: #fff;
+          border-bottom: 1px solid var(--color-gray200);
+          flex-shrink: 0; background: var(--color-white);
         }
         .cr-hamburger {
           width: 40px; height: 40px; border-radius: 12px;
           background: none; border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          color: #1a1a1a; transition: background 0.15s;
+          color: var(--color-gray800); transition: background 0.15s;
         }
-        .cr-hamburger:hover { background: #F5F5F5; }
+        .cr-hamburger:hover { background: var(--color-gray100); }
         .cr-title { font-size: 17px; font-weight: 700; margin: 0; }
 
         /* Messages area */
@@ -420,15 +435,15 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
           gap: 10px;
         }
         .sug-card {
-          background: #8A0F29; border: none; border-radius: 18px;
+          background: var(--color-red-dark); border: none; border-radius: 18px;
           padding: 15px 13px; cursor: pointer; text-align: left;
           display: flex; flex-direction: column; gap: 5px;
           transition: all 0.2s ease; box-shadow: 0 2px 0 rgba(0,0,0,0.1);
         }
-        .sug-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(138,15,41,0.32); }
+        .sug-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(227,30,36,0.32); }
         .sug-card:active { transform: translateY(0); }
-        .sug-title { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.35; }
-        .sug-sub { font-size: 11px; color: rgba(255,255,255,0.65); line-height: 1.4; }
+        .sug-title { font-size: 13px; font-weight: 700; color: var(--color-white); line-height: 1.35; }
+        .sug-sub { font-size: 11px; color: rgba(255,255,255,0.7); line-height: 1.4; }
 
         /* Message list */
         .msg-list {
@@ -444,7 +459,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         .msg-row--ai   { justify-content: flex-start; }
 
         .bubble-user {
-          background: #8A0F29; color: #fff;
+          background: var(--color-red); color: var(--color-white);
           padding: 11px 17px;
           border-radius: 22px 22px 5px 22px;
           max-width: 76%;
@@ -452,29 +467,29 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         }
 
         .bubble-ai {
-          background: #fff; border: 1px solid #EBEBEB;
+          background: var(--color-white); border: 1px solid var(--color-gray100);
           border-radius: 5px 22px 22px 22px;
           padding: 14px 16px;
           max-width: 86%;
           box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
         .bubble-ai-text {
-          margin: 0; font-size: 14px; color: #1a1a1a; line-height: 1.65;
+          margin: 0; font-size: 14px; color: var(--color-gray800); line-height: 1.65;
         }
 
         .bubble-ai-meta {
-          border-top: 1px solid #F0F0F0;
+          border-top: 1px solid var(--color-gray100);
           margin-top: 11px; padding-top: 9px;
-          font-size: 12px; color: #666;
+          font-size: 12px; color: var(--color-gray600);
         }
-        .meta-label { color: #AAA; }
+        .meta-label { color: var(--color-gray400); }
         .meta-link {
           background: none; border: none; padding: 0;
-          font-size: 12px; font-weight: 600; color: #8A0F29;
+          font-size: 12px; font-weight: 600; color: var(--color-red);
           font-family: 'Inter', sans-serif;
           cursor: pointer; text-decoration: underline;
         }
-        .meta-link:hover { color: #C0254A; }
+.meta-link:hover { color: var(--color-red-dark); }
         .meta-updated { margin-top: 3px; }
 
         /* Typing */
@@ -486,7 +501,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         .td {
           display: inline-block;
           width: 7px; height: 7px; border-radius: 50%;
-          background: #8A0F29;
+          background: var(--color-red);
           animation: tdPulse 1.1s ease infinite;
         }
 
@@ -498,33 +513,33 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         }
         .cr-input-bar {
           display: flex; align-items: center; gap: 8px;
-          background: #F5F5F5; border-radius: 28px;
+          background: var(--color-gray100); border-radius: 28px;
           padding: 7px 7px 7px 17px;
           border: 1.5px solid transparent;
           transition: border-color 0.2s, background 0.2s;
         }
         .cr-input-bar:focus-within {
-          border-color: rgba(138,15,41,0.28);
-          background: #FAFAFA;
+          border-color: rgba(227,30,36,0.28);
+          background: var(--color-white);
         }
         .cr-input {
           flex: 1; border: none; background: transparent;
           font-size: 14px; outline: none; color: #1a1a1a;
           font-family: 'Inter', sans-serif; padding: 5px 0;
         }
-        .cr-input::placeholder { color: #B0B0B0; }
+        .cr-input::placeholder { color: var(--color-gray400); }
 
         .cr-send {
           width: 36px; height: 36px; border-radius: 50%;
-          border: none; background: #E0E0E0; color: #AAA;
+          border: none; background: var(--color-gray200); color: var(--color-gray400);
           display: flex; align-items: center; justify-content: center;
           cursor: default; flex-shrink: 0; transition: all 0.2s;
         }
         .cr-send--active {
-          background: #8A0F29; color: #fff; cursor: pointer;
-          box-shadow: 0 3px 12px rgba(138,15,41,0.35);
+          background: var(--color-red); color: var(--color-white); cursor: pointer;
+          box-shadow: 0 3px 12px rgba(227,30,36,0.35);
         }
-        .cr-send--active:hover { background: #9e1230; transform: scale(1.06); }
+        .cr-send--active:hover { background: var(--color-red-dark); transform: scale(1.06); }
 
         /* Animations */
         @keyframes msgIn   { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:none} }
@@ -536,7 +551,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenDocument }:
         .cr-messages::-webkit-scrollbar-track,
         .sb-recent::-webkit-scrollbar-track { background: transparent; }
         .cr-messages::-webkit-scrollbar-thumb,
-        .sb-recent::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 10px; }
+        .sb-recent::-webkit-scrollbar-thumb { background: var(--color-gray200); border-radius: 10px; }
 
         /* ──────── RESPONSIVE ──────── */
 
@@ -594,15 +609,22 @@ const IconSearch = () => (
 );
 
 const IconLibrary = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A0F29" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
     <polyline points="9 2 9 22" />
   </svg>
 );
 
 const IconPlus = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A0F29" strokeWidth="2" strokeLinecap="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-red)" strokeWidth="2" strokeLinecap="round">
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const IconSettings = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3.5" />
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 2l.1.1a1 1 0 0 1 0 1.4l-1 1a1 1 0 0 1-1.4 0l-.1-.1a1.7 1.7 0 0 0-2 .3l-.7.7a1 1 0 0 1-1.4 0l-1-1a1 1 0 0 1 0-1.4l.7-.7a1.7 1.7 0 0 0 .3-2l-.1-.1a1 1 0 0 1 0-1.4l1-1a1 1 0 0 1 1.4 0l.1.1a1.7 1.7 0 0 0 2-.3l.7-.7a1 1 0 0 1 1.4 0l1 1a1 1 0 0 1 0 1.4l-.7.7Z" />
   </svg>
 );
 

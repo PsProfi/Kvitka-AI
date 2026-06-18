@@ -5,16 +5,19 @@ import { ChatPage } from "./ChatPage";
 import { ProfilePage } from "./ProfilePage";
 import { LibraryPage } from "./LibraryPage";
 import { DocumentPage } from "./DocumentPage";
+import { AdminPage } from "./AdminPage";
 
 type Page =
   | { name: "login" }
   | { name: "chat" }
   | { name: "profile" }
   | { name: "library" }
-  | { name: "document"; docTitle: string };
+  | { name: "document"; docTitle: string }
+  | { name: "admin" };
 
 export default function App() {
-  const [page, setPage] = useState<Page>({ name: "login" });
+  const [page, setPage] = useState<Page>({
+    name: "login" });
   const [user, setUser] = useState<AuthUser | null>(null);
 
   const handleLogin = (authUser: AuthUser) => {
@@ -60,6 +63,9 @@ export default function App() {
         />
       );
 
+    case "admin":
+      return <AdminPage user={user} onBack={() => setPage({ name: "chat" })} />;
+
     case "chat":
     default:
       return (
@@ -67,6 +73,7 @@ export default function App() {
           user={user}
           onOpenProfile={() => setPage({ name: "profile" })}
           onOpenLibrary={() => setPage({ name: "library" })}
+          onOpenAdmin={() => setPage({ name: "admin" })}
           onOpenDocument={(title) => setPage({ name: "document", docTitle: title })}
         />
       );

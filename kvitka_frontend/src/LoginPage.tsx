@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Logo } from "./Logo";
+import { COLORS } from "./colors";
+import { Logo2 } from "./Logo2";
 
 export interface AuthUser {
   id: number;
@@ -67,7 +68,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "radial-gradient(circle at 50% 30%, #8A0F29 0%, #300007 100%)",
+      background: "radial-gradient(circle at 50% 30%, " + COLORS.red + " 50%, " + COLORS.redDark + " 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -107,7 +108,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div style={{ paddingLeft: "4px", marginBottom: "28px" }}>
           {/* Logo */}
           <div style={{ marginBottom: "20px" }}>
-            <Logo size={52} light />
+            <Logo2 size={52} />
           </div>
 
           {/* Heading */}

@@ -1,0 +1,20 @@
+/* Стилі для гарного відображення маркованих списків від ШІ */
+.markdown-content ul {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding-left: 20px;
+    list-style-type: disc;
+    /* Повертає стандартні крапочки */
+}
+
+.markdown-content li {
+    margin-bottom: 4px;
+}
+
+.markdown-content p {
+    margin-bottom: 8px;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
