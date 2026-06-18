@@ -64,6 +64,17 @@ export default function App() {
       );
 
     case "admin":
+      if (!user?.is_admin) {
+        return (
+          <ChatPage
+            user={user}
+            onOpenProfile={() => setPage({ name: "profile" })}
+            onOpenLibrary={() => setPage({ name: "library" })}
+            onOpenAdmin={() => user?.is_admin && setPage({ name: "admin" })}
+            onOpenDocument={(title) => setPage({ name: "document", docTitle: title })}
+          />
+        );
+      }
       return <AdminPage user={user} onBack={() => setPage({ name: "chat" })} />;
 
     case "chat":
@@ -73,7 +84,7 @@ export default function App() {
           user={user}
           onOpenProfile={() => setPage({ name: "profile" })}
           onOpenLibrary={() => setPage({ name: "library" })}
-          onOpenAdmin={() => setPage({ name: "admin" })}
+          onOpenAdmin={() => user?.is_admin && setPage({ name: "admin" })}
           onOpenDocument={(title) => setPage({ name: "document", docTitle: title })}
         />
       );
