@@ -1,31 +1,13 @@
-import { useState } from 'react'
-import { LoginForm } from './components/LoginForm'
-import { ChatInterface } from './components/ChatInterface'
-import './App.css'
+import { useState } from "react";
+import { LoginPage } from "./LoginPage";
+import { ChatPage } from "./ChatPage";
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userName, setUserName] = useState('')
+type Page = "login" | "chat";
 
-  const handleLogin = (email: string) => {
-    setUserName(email)
-    setIsLoggedIn(true)
-  }
+export default function App() {
+  const [page, setPage] = useState<Page>("login");
 
-  const handleLogout = () => {
-    setIsLoggedIn(false)
-    setUserName('')
-  }
-
-  return (
-    <>
-      {!isLoggedIn ? (
-        <LoginForm onLogin={handleLogin} />
-      ) : (
-        <ChatInterface userName={userName} onLogout={handleLogout} />
-      )}
-    </>
-  )
+  return page === "login"
+    ? <LoginPage onLogin={() => setPage("chat")} />
+    : <ChatPage onLogout={() => setPage("login")} />;
 }
-
-export default App
