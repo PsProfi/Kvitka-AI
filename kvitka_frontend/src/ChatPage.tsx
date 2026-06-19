@@ -288,7 +288,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
             <IconPlus />
             <span>Новий чат</span>
           </button>
-          <button className="sb-nav-item" onClick={() => { setDrawerOpen(false); onOpenLibrary(); }}>
+          <button className="sb-nav-item sb-nav-item--library" onClick={() => { setDrawerOpen(false); onOpenLibrary(); }}>
             <IconLibrary />
             <span>Бібліотека</span>
           </button>
@@ -459,6 +459,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
           .cr-sidebar.is-open { transform: translateX(0); }
           .bubble-user { max-width: 82%; }
           .bubble-ai { max-width: 90%; }
+          .sb-nav-item--library { display: none; }
         }
         @media (min-width: 768px) {
           .cr-hamburger { display: none; }

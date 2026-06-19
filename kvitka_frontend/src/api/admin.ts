@@ -8,11 +8,11 @@ export interface AdminDocument {
   content?: string;
 }
 
+import { BASE_URL } from "./apiConfig";
+
 function getAuthToken() {
   return localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token") || "";
 }
-
-const BASE_URL = "http://localhost:3001";
 
 export async function getDocuments() {
   const token = getAuthToken();
