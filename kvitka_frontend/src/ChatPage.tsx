@@ -288,6 +288,10 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
             <IconPlus />
             <span>Новий чат</span>
           </button>
+          <button className="sb-nav-item" onClick={() => { setDrawerOpen(false); onOpenLibrary(); }}>
+            <IconLibrary />
+            <span>Бібліотека</span>
+          </button>
         </nav>
 
         <div className="sb-recent">
