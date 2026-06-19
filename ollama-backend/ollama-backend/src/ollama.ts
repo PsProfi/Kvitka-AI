@@ -14,7 +14,7 @@ export async function createEmbedding(text: string | null | undefined) {
     return null;
   }
 
-  const response = await fetch("http://192.168.0.158:11434/api/embed", {
+  const response = await fetch("http://0.0.0.0:11434/api/embed", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

@@ -1,6 +1,13 @@
 {
   "sessions": [
     {
+      "id": "58849989-12f2-4a42-af54-f894fa915d61",
+      "user_id": 2,
+      "title": "Новий чат",
+      "created_at": "2026-06-19T07:43:55.463Z",
+      "updated_at": "2026-06-19T07:44:38.304Z"
+    },
+    {
       "id": "782b618f-b373-4b41-b1de-0f2687c47e50",
       "user_id": 2,
       "title": "Новий чат",
@@ -187,6 +194,49 @@
         }
       ],
       "created_at": "2026-06-19T07:15:43.947Z"
+    },
+    {
+      "id": "7f4147a7-aa91-47eb-a60e-d11f2e7603e2",
+      "session_id": "58849989-12f2-4a42-af54-f894fa915d61",
+      "user_id": 2,
+      "role": "user",
+      "content": "Коли я зможу взяти відпустку?",
+      "sources": [],
+      "created_at": "2026-06-19T07:43:55.463Z"
+    },
+    {
+      "id": "e9de2a01-2279-4f4f-8f91-55a30a920b88",
+      "session_id": "58849989-12f2-4a42-af54-f894fa915d61",
+      "user_id": 2,
+      "role": "assistant",
+      "content": "Заяву потрібно подати за 14 днів до початку відпустки. Працівник може взяти відпустку тривалістю до 24 календарних днів.",
+      "sources": [
+        {
+          "id": 2,
+          "title": "Документ",
+          "fileName": "company_rules.txt",
+          "similarityPercent": 69
+        },
+        {
+          "id": 71,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 47
+        },
+        {
+          "id": 74,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 44
+        },
+        {
+          "id": 70,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 44
+        }
+      ],
+      "created_at": "2026-06-19T07:44:38.304Z"
     }
   ]
 }
