@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 @app.post(
-    "/api/auth/login",
+    "https://straining-dodgy-sage.ngrok-free.dev/api/auth/login",
     response_model=TokenResponse,
     summary="User Login",
     description="Authenticate a user manually via custom login and password credentials. Returns a JWT access token and user information."
