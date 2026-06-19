@@ -11,7 +11,8 @@ from app.services import AuthService, InvalidCredentialsError
 app = FastAPI(
     title="Kvitka-AI Auth API",
     description="Clean architecture FastAPI service for Supabase manual user auth and admin verification",
-    version="1.0.0"
+    version="1.0.0",
+    servers=[{"url": "https://straining-dodgy-sage.ngrok-free.dev"}]
 )
 
 # Enable CORS for standard web client connections
@@ -89,4 +90,4 @@ def runtime_exception_handler(request, exc):
     )
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
