@@ -1,0 +1,192 @@
+{
+  "sessions": [
+    {
+      "id": "782b618f-b373-4b41-b1de-0f2687c47e50",
+      "user_id": 2,
+      "title": "Новий чат",
+      "created_at": "2026-06-19T07:12:50.644Z",
+      "updated_at": "2026-06-19T07:15:43.947Z"
+    },
+    {
+      "id": "c81c63fd-5c60-4980-a1c5-ff7e4a8a1ecd",
+      "user_id": 2,
+      "title": "Новий чат",
+      "created_at": "2026-06-19T07:00:00.130Z",
+      "updated_at": "2026-06-19T07:12:33.224Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "845675b9-ca08-48e3-9830-c7f5957842d7",
+      "session_id": "c81c63fd-5c60-4980-a1c5-ff7e4a8a1ecd",
+      "user_id": 2,
+      "role": "user",
+      "content": "Коли я зможу піти в відпустку?",
+      "sources": [],
+      "created_at": "2026-06-19T07:00:00.130Z"
+    },
+    {
+      "id": "0ba3ad2e-3a2d-4c51-8074-090c8222ce54",
+      "session_id": "c81c63fd-5c60-4980-a1c5-ff7e4a8a1ecd",
+      "user_id": 2,
+      "role": "assistant",
+      "content": "У наданих документах немає точної інформації з цього приводу.",
+      "sources": [
+        {
+          "id": 2,
+          "title": "Документ",
+          "fileName": "company_rules.txt",
+          "similarityPercent": 66
+        },
+        {
+          "id": 47,
+          "title": "уцаацаа",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 46
+        }
+      ],
+      "created_at": "2026-06-19T07:00:47.447Z"
+    },
+    {
+      "id": "063ca844-81c7-4a4a-a5c7-3327613f45ac",
+      "session_id": "c81c63fd-5c60-4980-a1c5-ff7e4a8a1ecd",
+      "user_id": 2,
+      "role": "user",
+      "content": "коли я зможу взяти відпустку?",
+      "sources": [],
+      "created_at": "2026-06-19T07:11:48.748Z"
+    },
+    {
+      "id": "e548ead2-2968-42e7-80a9-6a901cfdbbc2",
+      "session_id": "c81c63fd-5c60-4980-a1c5-ff7e4a8a1ecd",
+      "user_id": 2,
+      "role": "assistant",
+      "content": "Працівник може взяти відпустку тривалістю до 24 календарних днів. Заяву потрібно подати за 14 днів до початку відпустки.",
+      "sources": [
+        {
+          "id": 2,
+          "title": "Документ",
+          "fileName": "company_rules.txt",
+          "similarityPercent": 69
+        },
+        {
+          "id": 71,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 47
+        },
+        {
+          "id": 74,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 44
+        },
+        {
+          "id": 70,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 44
+        }
+      ],
+      "created_at": "2026-06-19T07:12:33.224Z"
+    },
+    {
+      "id": "6a78012d-0e15-476d-b595-51a61ce11e48",
+      "session_id": "782b618f-b373-4b41-b1de-0f2687c47e50",
+      "user_id": 2,
+      "role": "user",
+      "content": "Які вимоги функціонування?",
+      "sources": [],
+      "created_at": "2026-06-19T07:12:54.196Z"
+    },
+    {
+      "id": "94c03448-58af-405d-b568-ea30a2814b01",
+      "session_id": "782b618f-b373-4b41-b1de-0f2687c47e50",
+      "user_id": 2,
+      "role": "assistant",
+      "content": "ОСНОВНІ ФУНКЦІОНАЛЬНІ ВИМОГИ:\n\nРолі та права:\nАдміністратор: Завантажує документи, керує користувачами, бачить налаштування системи.\nКористувач: Ставить питання та отримує відповіді.\n\nФункції:\n1. Завантаження документів: PDF, DOCX, TXT, XLSX або інші формати, які студенти запропонують підтримувати.\n2. Групування документів: Наприклад: HR, фінанси, продажі, логі.",
+      "sources": [
+        {
+          "id": 61,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 57
+        },
+        {
+          "id": 72,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 57,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 63,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 64,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        }
+      ],
+      "created_at": "2026-06-19T07:13:11.171Z"
+    },
+    {
+      "id": "7e901b25-21bb-4a56-99b0-470106e4cf02",
+      "session_id": "782b618f-b373-4b41-b1de-0f2687c47e50",
+      "user_id": 2,
+      "role": "user",
+      "content": "Які вимоги функціонування?",
+      "sources": [],
+      "created_at": "2026-06-19T07:15:34.743Z"
+    },
+    {
+      "id": "4e500baa-b44c-4ea7-a8a2-af5945168ba4",
+      "session_id": "782b618f-b373-4b41-b1de-0f2687c47e50",
+      "user_id": 2,
+      "role": "assistant",
+      "content": "ОСНОВНІ ФУНКЦІОНАЛЬНІ ВИМОГИ:\n\nРолі та права:\nАдміністратор: Завантажує документи, керує користувачами, бачить налаштування системи.\nКористувач: Ставить питання та отримує відповіді.\n\nФункції:\n1. Завантаження документів: PDF, DOCX, TXT, XLSX або інші формати, які студенти запропонують підтримувати.\n2. Групування документів: Наприклад: HR, фінанси, продажі, логі.",
+      "sources": [
+        {
+          "id": 61,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 57
+        },
+        {
+          "id": 72,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 57,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 63,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        },
+        {
+          "id": 64,
+          "title": "гщшгщшг",
+          "fileName": "Внутрішня AI-база знань компанії.pdf",
+          "similarityPercent": 54
+        }
+      ],
+      "created_at": "2026-06-19T07:15:43.947Z"
+    }
+  ]
+}

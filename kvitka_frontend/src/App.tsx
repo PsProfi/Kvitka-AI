@@ -25,6 +25,8 @@ export default function App() {
     setPage({ name: "chat" });
   };
 
+  const canOpenAdmin = user?.login?.toLowerCase() === "admin@gmail.com";
+
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
@@ -64,13 +66,13 @@ export default function App() {
       );
 
     case "admin":
-      if (!user?.is_admin) {
+      if (!canOpenAdmin) {
         return (
           <ChatPage
             user={user}
             onOpenProfile={() => setPage({ name: "profile" })}
             onOpenLibrary={() => setPage({ name: "library" })}
-            onOpenAdmin={() => user?.is_admin && setPage({ name: "admin" })}
+            onOpenAdmin={() => canOpenAdmin && setPage({ name: "admin" })}
             onOpenDocument={(title) => setPage({ name: "document", docTitle: title })}
           />
         );
@@ -84,7 +86,7 @@ export default function App() {
           user={user}
           onOpenProfile={() => setPage({ name: "profile" })}
           onOpenLibrary={() => setPage({ name: "library" })}
-          onOpenAdmin={() => user?.is_admin && setPage({ name: "admin" })}
+          onOpenAdmin={() => canOpenAdmin && setPage({ name: "admin" })}
           onOpenDocument={(title) => setPage({ name: "document", docTitle: title })}
         />
       );

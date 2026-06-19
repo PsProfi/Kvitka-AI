@@ -5,6 +5,7 @@ import cors from "cors";
 import multer from "multer";
 import pdfParse from "pdf-parse";
 import path from "path";
+import fs from "fs/promises";
 
 import { supabase } from "./supabase.js";
 import { createEmbedding, chat } from "./ollama.js";
@@ -92,14 +93,14 @@ function buildDocumentList(rows: any[]) {
       title: metadata.title || metadata.source || "Документ",
       source: metadata.source || "",
       content_type: metadata.content_type || "text/plain",
-      created_at: row.inserted_at,
-      updated_at: row.inserted_at,
+      created_at: row.id ? String(row.id) : new Date().toISOString(),
+      updated_at: row.id ? String(row.id) : new Date().toISOString(),
     };
 
     if (!existing) {
       docs.set(id, item);
-    } else if (row.inserted_at > existing.updated_at) {
-      existing.updated_at = row.inserted_at;
+    } else if (row.id > Number(existing.updated_at)) {
+      existing.updated_at = String(row.id);
     }
   }
 
@@ -115,18 +116,187 @@ function fixUtf8String(str: string): string {
   }
 }
 
+interface PersistedChatSession {
+  id: string;
+  user_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface PersistedChatMessage {
+  id: string;
+  session_id: string;
+  user_id: number;
+  role: "user" | "assistant";
+  content: string;
+  sources: Array<{ id: number; title: string; fileName: string; similarityPercent: number }>;
+  created_at: string;
+}
+
+interface ChatData {
+  sessions: PersistedChatSession[];
+  messages: PersistedChatMessage[];
+}
+
+const chatDataFilePath = path.join(process.cwd(), "data", "chat_data.json");
+const sseClients = new Map<string, Set<express.Response>>();
+
+async function ensureChatDataFile() {
+  await fs.mkdir(path.dirname(chatDataFilePath), { recursive: true });
+  try {
+    await fs.access(chatDataFilePath);
+  } catch {
+    await fs.writeFile(chatDataFilePath, JSON.stringify({ sessions: [], messages: [] }, null, 2), "utf8");
+  }
+}
+
+async function readChatData(): Promise<ChatData> {
+  try {
+    await ensureChatDataFile();
+    const content = await fs.readFile(chatDataFilePath, "utf8");
+    return JSON.parse(content) as ChatData;
+  } catch (error) {
+    console.error("Не вдалося зчитати дані чату:", error);
+    return { sessions: [], messages: [] };
+  }
+}
+
+async function writeChatData(data: ChatData) {
+  await ensureChatDataFile();
+  await fs.writeFile(chatDataFilePath, JSON.stringify(data, null, 2), "utf8");
+}
+
+function sendSseEvent(userId: string, event: string, payload: any) {
+  const listeners = sseClients.get(userId);
+  if (!listeners) return;
+
+  const data = typeof payload === "string" ? payload : JSON.stringify(payload);
+  for (const res of listeners) {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${data}\n\n`);
+  }
+}
+
+app.get("/chat/sessions", async (req, res) => {
+  const userId = Number(req.query.userId);
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+
+  try {
+    const data = await readChatData();
+    const userSessions = data.sessions
+      .filter((session) => session.user_id === userId)
+      .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));
+
+    res.json(userSessions);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не вдалося завантажити чати" });
+  }
+});
+
+app.post("/chat/sessions", async (req, res) => {
+  const userId = Number(req.body.userId);
+  const title = typeof req.body.title === "string" && req.body.title.trim() ? req.body.title.trim() : "Новий чат";
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+
+  try {
+    const data = await readChatData();
+    const now = new Date().toISOString();
+    const session: PersistedChatSession = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      title,
+      created_at: now,
+      updated_at: now,
+    };
+
+    data.sessions.unshift(session);
+    await writeChatData(data);
+    sendSseEvent(String(userId), "chat-session", { session_id: session.id });
+    res.json(session);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не вдалося створити чат" });
+  }
+});
+
+app.get("/chat/sessions/:sessionId/messages", async (req, res) => {
+  const userId = Number(req.query.userId);
+  const sessionId = req.params.sessionId;
+
+  if (!userId || !sessionId) {
+    return res.status(400).json({ error: "userId and sessionId are required" });
+  }
+
+  try {
+    const data = await readChatData();
+    const session = data.sessions.find((item) => item.id === sessionId && item.user_id === userId);
+    if (!session) {
+      return res.status(404).json({ error: "Чат не знайдено" });
+    }
+
+    const messages = data.messages
+      .filter((message) => message.session_id === sessionId)
+      .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+
+    res.json(messages);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не вдалося завантажити повідомлення" });
+  }
+});
+
+app.get("/chat/events", (req, res) => {
+  const userId = String(req.query.userId || "");
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders();
+  res.write(`: connected\n\n`);
+
+  const listeners = sseClients.get(userId) || new Set<express.Response>();
+  listeners.add(res);
+  sseClients.set(userId, listeners);
+
+  req.on("close", () => {
+    const set = sseClients.get(userId);
+    if (!set) return;
+    set.delete(res);
+    if (set.size === 0) {
+      sseClients.delete(userId);
+    }
+  });
+});
+
 app.post("/chat", async (req, res) => {
   try {
-    // 1. Отримуємо повідомлення (підтримка як масиву messages, так і одиночного message для старих запитів)
-    const { messages, message } = req.body;
-    
+    const { messages, message, userId: rawUserId, sessionId: rawSessionId } = req.body;
+    const userId = Number(rawUserId);
+    const sessionId = typeof rawSessionId === "string" && rawSessionId.trim() ? rawSessionId.trim() : undefined;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
     let userText = "";
     let history = [];
 
     if (messages && Array.isArray(messages) && messages.length > 0) {
       history = messages;
       userText = messages[messages.length - 1]?.content || "";
-    } else if (message) {
+    } else if (typeof message === "string") {
       userText = message;
       history = [{ role: "user", content: message }];
     }
@@ -135,28 +305,53 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Повідомлення порожнє" });
     }
 
-    // 2. Створюємо ембеддінг
-    const queryEmbedding = await createEmbedding(userText);
+    const data = await readChatData();
+    let session = sessionId
+      ? data.sessions.find((item) => item.id === sessionId && item.user_id === userId)
+      : undefined;
 
+    if (!session) {
+      const now = new Date().toISOString();
+      session = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        title: "Новий чат",
+        created_at: now,
+        updated_at: now,
+      };
+      data.sessions.unshift(session);
+      sendSseEvent(String(userId), "chat-session", { session_id: session.id });
+    }
+
+    const now = new Date().toISOString();
+    const userMessage: PersistedChatMessage = {
+      id: crypto.randomUUID(),
+      session_id: session.id,
+      user_id: userId,
+      role: "user",
+      content: userText,
+      sources: [],
+      created_at: now,
+    };
+    data.messages.push(userMessage);
+
+    const queryEmbedding = await createEmbedding(userText);
     if (!queryEmbedding || !Array.isArray(queryEmbedding) || queryEmbedding.length !== 1024) {
-      // Якщо bge-m3 видає іншу розмірність, дізнаємось про це з логів
       console.log(`Розмірність отриманого вектора: ${queryEmbedding?.length}`);
     }
 
-    // 3. Шукаємо в Supabase
     const { data: rawChunks, error } = await supabase.rpc("match_documents", {
       query_embedding: queryEmbedding,
-      match_count: 5
+      match_count: 5,
     });
 
     if (error) throw error;
 
-    // Фільтрація та дедублікація джерел за текстом
     const seenContent = new Set();
     const relevantChunks = [];
 
     for (const item of rawChunks) {
-      if (item.similarity > 0.45 && !seenContent.has(item.content)) {
+      if (item.similarity > 0.3 && !seenContent.has(item.content)) {
         seenContent.add(item.content);
         if (item.metadata?.source) {
           item.metadata.source = fixUtf8String(item.metadata.source);
@@ -165,12 +360,11 @@ app.post("/chat", async (req, res) => {
       }
     }
 
-    const contextText = relevantChunks.map(c => c.content).join("\n\n");
+    const contextText = relevantChunks.map((c) => c.content).join("\n\n");
 
-    // 4. Формуємо інструкцію для ШІ
     const systemInstruction = {
-  role: "system" as const,
-  content: `Ти — суворий і лаконічний корпоративний асистент, який відповідає ТІЛЬКИ фактами з наданого контексту.
+      role: "system" as const,
+      content: `Ти — суворий і лаконічний корпоративний асистент, який відповідає ТІЛЬКИ фактами з наданого контексту.
 
 КРИТИЧНІ ПРАВИЛА ОФОРМЛЕННЯ:
 1. Тобі КАТЕГОРИЧНО ЗАБОРОНЕНО використовувати будь-які зірочки (* або **) у тексті. 
@@ -186,13 +380,12 @@ app.post("/chat", async (req, res) => {
 4. Якщо інформації у контексті недостатньо для прямої відповіді, просто скажи: "У наданих документах немає точної інформації з цього приводу."
 
 Контекст для роботи:
-${contextText}`
-};
+${contextText}`,
+    };
 
-    // Отримуємо відповідь від Ollama
-    let aiResponse = await chat([systemInstruction, ...history]);
+    const aiResponseText = await chat([systemInstruction, ...history]);
+    let aiResponse = aiResponseText;
 
-    // ПІДСТРАХОВКА: Якщо модель все одно проігнорувала інструкцію і видала JSON-рядок
     if (aiResponse && (aiResponse.trim().startsWith("{") || aiResponse.trim().startsWith('{"answer"'))) {
       try {
         const parsed = JSON.parse(aiResponse);
@@ -202,20 +395,35 @@ ${contextText}`
       }
     }
 
-    // 5. Формуємо масив чистих джерел
-    const sources = relevantChunks.map(chunk => ({
+    const sources = relevantChunks.map((chunk) => ({
       id: chunk.id,
       title: chunk.metadata?.title || "Документ",
       fileName: chunk.metadata?.source || "file.pdf",
-      similarityPercent: Math.round(chunk.similarity * 100)
+      similarityPercent: Math.round(chunk.similarity * 100),
     }));
 
-    // Відправляємо на фронтенд чистий об'єкт
-    res.json({
-      answer: aiResponse || "Не вдалося згенерувати відповідь.",
-      sources: sources
-    });
+    const assistantMessage: PersistedChatMessage = {
+      id: crypto.randomUUID(),
+      session_id: session.id,
+      user_id: userId,
+      role: "assistant",
+      content: aiResponse || "Не вдалося згенерувати відповідь.",
+      sources,
+      created_at: new Date().toISOString(),
+    };
 
+    data.messages.push(assistantMessage);
+    session.updated_at = new Date().toISOString();
+    await writeChatData(data);
+
+    sendSseEvent(String(userId), "chat-message", assistantMessage);
+    sendSseEvent(String(userId), "chat-session", { session_id: session.id });
+
+    res.json({
+      answer: assistantMessage.content,
+      sources,
+      sessionId: session.id,
+    });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -225,8 +433,8 @@ app.get("/admin/documents", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("document_chunks")
-      .select("metadata, inserted_at")
-      .order("inserted_at", { ascending: false });
+      .select("metadata, id")
+      .order("id", { ascending: false });
 
     if (error) {
       throw error;
@@ -244,8 +452,8 @@ app.get("/admin/documents/:id", async (req, res) => {
     const documentId = req.params.id;
     const { data, error } = await supabase
       .from("document_chunks")
-      .select("content, metadata, inserted_at")
-      .order("inserted_at", { ascending: true });
+      .select("content, metadata, id")
+      .order("id", { ascending: true });
 
     if (error) {
       throw error;
@@ -265,8 +473,8 @@ app.get("/admin/documents/:id", async (req, res) => {
       title: metadata.title || metadata.source || "Документ",
       source: metadata.source || "",
       content_type: metadata.content_type || "text/plain",
-      created_at: rows[0].inserted_at || new Date().toISOString(),
-      updated_at: rows[rows.length - 1].inserted_at || new Date().toISOString(),
+      created_at: rows[0].id ? String(rows[0].id) : new Date().toISOString(),
+      updated_at: rows[rows.length - 1].id ? String(rows[rows.length - 1].id) : new Date().toISOString(),
       content: rows.map((row: any) => row.content).join("\n\n"),
     });
   } catch (error) {
@@ -320,8 +528,8 @@ app.patch("/admin/documents/:id", express.json(), async (req, res) => {
 
     const { data, error } = await supabase
       .from("document_chunks")
-      .select("content,metadata,inserted_at")
-      .order("inserted_at", { ascending: true });
+      .select("content,metadata,id")
+      .order("id", { ascending: true });
 
     if (error) {
       throw error;

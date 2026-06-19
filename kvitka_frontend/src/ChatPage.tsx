@@ -39,11 +39,11 @@ interface ChatPageProps {
 
 const SUGGESTIONS = [
   {
-    title: "Де знаходиться 127 кабінет?",
-    subtitle: "Швидко знайдіть аудиторію та найближче місце в закладі.",
+    title: "Коли я зможу взяти відпустку?",
+    subtitle: "Швидко знайдіть інформацію про відпочинок.",
   },
   {
-    title: "Які зміни в розкладі сьогодні?",
+    title: "Які вимоги функціонування?",
     subtitle: "Перевірте оновлення, перенесення та важливі оголошення.",
   },
 ];
@@ -81,6 +81,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
 
   const userId = user?.id;
   const canUseChat = typeof userId === "number";
+  const canManageKnowledge = user?.login?.toLowerCase() === "admin@gmail.com";
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)),
@@ -117,7 +118,12 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
   const refreshSessions = useCallback(async () => {
     if (!userId) return;
     const cached = readCache<ChatSession[]>(cacheKey(userId, "sessions"), []);
-    if (cached.length) setSessions(cached);
+    if (cached.length) {
+      setSessions(cached);
+      if (!activeSessionId && cached[0]) {
+        void loadMessages(cached[0].id);
+      }
+    }
 
     try {
       const next = await getChatSessions(userId);
@@ -261,7 +267,7 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
         <div className="sb-head">
           <Logo2light size={30} />
           <div className="sb-head-right">
-            {user?.is_admin && (
+            {canManageKnowledge && (
               <button
                 className="sb-icon-btn"
                 title="Керування знаннями"
@@ -278,10 +284,6 @@ export function ChatPage({ user, onOpenProfile, onOpenLibrary, onOpenAdmin, onOp
         </div>
 
         <nav className="sb-nav">
-          <button className="sb-nav-item" onClick={() => { setDrawerOpen(false); onOpenLibrary(); }}>
-            <IconLibrary />
-            <span>Бібліотека</span>
-          </button>
           <button className="sb-nav-item" onClick={startNewChat}>
             <IconPlus />
             <span>Новий чат</span>

