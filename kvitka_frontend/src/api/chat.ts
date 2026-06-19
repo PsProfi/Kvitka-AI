@@ -34,7 +34,7 @@ export interface StoredChatMessage {
   created_at: string;
 }
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "http://192.168.0.158:3001";
 
 function getAuthToken() {
   return localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token") || "";
